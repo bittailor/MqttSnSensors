@@ -4,7 +4,7 @@
 
 //-----
 
-#define SENSOR_ID 1
+#define SENSOR_ID 3
 
 //-----
 
@@ -25,7 +25,7 @@
 #define GATEWAY_NODE_ID 0
 
 #define DHT22_READ_INTERVAL 30000
-#define RETRY_CONNECT_DELAY 5000
+#define RETRY_CONNECT_DELAY 20000
 
 #define CHIP_ENABLE 9
 #define CHIP_SELECT 10
@@ -52,17 +52,12 @@ void setup() {
 
    Serial << "try connect ..." << endl;
 
-   while (!client.connect()) {
-      Serial << "... connect failed, retry @ " <<  (millis() + RETRY_CONNECT_DELAY) << " ..." << endl;
-      delay(RETRY_CONNECT_DELAY);
-      Serial << "... retry connect ..." << endl;
-   }
+   connect();
 
    unsigned long now = millis();
    lastConnect = now;
    nextReadTime = now;
 
-   Serial << "... connected" << endl;
 }
 
 void loop() {
@@ -73,14 +68,23 @@ void loop() {
      }
    } else {
      Serial << "Connection lost try reconnect ..." << endl;
-     while (!client.connect()) {
-       Serial << "... reconnect failed, retry @ " <<  (millis() + RETRY_CONNECT_DELAY) << " ..." << endl;
-       delay(RETRY_CONNECT_DELAY);
-       Serial << "... retry reconnect ..." << endl;
-     }
+     connect();
      reconnectCounter++;
      lastConnect = millis();
    }
+}
+
+void connect() {
+    while (!client.connect()) {
+      Serial << "... connect failed, reset client ... " << endl;
+      client.end();
+      delay(1000);
+      Serial << "... and retry connect after delay @ " <<  (millis() + RETRY_CONNECT_DELAY) << " ..." << endl;
+      client.begin(CHIP_ENABLE, CHIP_SELECT, CLIENT_NODE_ID, GATEWAY_NODE_ID, CLIENT_ID);
+      delay(RETRY_CONNECT_DELAY);
+      Serial << "... retry connect ..." << endl;
+    }
+    Serial << "... connected" << endl;
 }
 
 void publishTemperature() {
